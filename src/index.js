@@ -1,4 +1,4 @@
-import wwObject from './wwObjectButton.vue'
+import wwObject from './wwObjectDropdown.vue'
 
 const name = "__NAME__";
 const version = '__VERSION__';
@@ -10,27 +10,12 @@ const addComponent = function () {
             content: {
                 type: name,
                 data: {
-                    text: {
-
-                    },
                     style: {
-                        backgroundColor: "#FFFFFF",
-                        gradient: '',
-                        borderRadius: 50,
-                        borderWidth: 1,
-                        borderColor: "#000000",
-                        borderStyle: "solid",
-                        padding: 10,
-                        justify: null,
-                        boxShadow: {
-                            x: 0,
-                            y: 0,
-                            b: 0,
-                            s: 0,
-                            c: ''
-                        }
+                        justify: null
                     },
-                    fullWidth: false
+                    title: {},
+                    background: {},
+                    list: []
                 }
             },
             upsales: {
@@ -53,13 +38,13 @@ const addComponent = function () {
                             action: 'edit'
                         },
                         {
-                            name: 'LINK',
+                            name: 'TOGGLE',
                             text: {
-                                en: 'Link',
-                                fr: 'Lien'
+                                en: 'Keep open',
+                                fr: 'Garder ouvert'
                             },
-                            icon: 'wwi wwi-link-external',
-                            action: 'changeLink'
+                            icon: 'wwi wwi-chevron-down',
+                            action: 'toggle'
                         }
                     ]
                 }

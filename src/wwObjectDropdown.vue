@@ -1,38 +1,20 @@
 <template>
-    <div class="ww-button-wrapper" :style="wrapperStyle">
-        <div class="ww-button" :style="style">
-            <!-- wwManager:start -->
-            <wwOrangeButton class="ww-orange-button" v-if="wwObjectCtrl.getSectionCtrl().getEditMode()"></wwOrangeButton>
-            <!-- wwManager:end -->
-            <wwObject :ww-object="wwObject.content.data.text" ww-inside-ww-object="ww-button" :ww-not-editable="textNotEditable" ww-default-object-type="ww-text" ww-object-types-allowed="['ww-text']" :ww-no-section="wwAttrs.wwNoSection" :ww-no-link="wwAttrs.wwNoLink" ww-force-edit-mode="CONTENT"></wwObject>
+    <div class="ww-dropdown" :class="{'open': forceOpen || focus}" :style="style">
+        <!-- wwManager:start -->
+        <wwOrangeButton class="ww-orange-button" v-if="wwObjectCtrl.getSectionCtrl().getEditMode() == 'CONTENT'"></wwOrangeButton>
+        <!-- wwManager:end -->
+        <wwObject :ww-object="wwObject.content.data.title" ww-inside-ww-object="ww-dropdown" :ww-not-editable="textNotEditable" ww-default-object-type="ww-text" ww-object-types-allowed="['ww-text']" :ww-no-section="wwAttrs.wwNoSection" :ww-no-link="wwAttrs.wwNoLink" ww-force-edit-mode="CONTENT"></wwObject>
+        <div class="dropdown">
+            <wwObject class="background" ww-category="background" :ww-object="wwObject.content.data.background" ww-inside-ww-object="ww-dropdown"></wwObject>
+            <wwLayoutColumn tag="div" ww-default="ww-image" :ww-list="wwObject.content.data.list" class="dropdown-list" @ww-add="wwAdd($event)" @ww-remove="wwRemove($event)">
+                <wwObject v-for="wwObj in wwObject.content.data.list" :key="wwObj.uniqueId" :ww-object="wwObj" ww-inside-ww-object="ww-dropdown"></wwObject>
+            </wwLayoutColumn>
         </div>
     </div>
 </template>
  
 
 <script>
-/* wwManager:start */
-import wwButtonPopupStyle from './wwButtonPopupStyle.vue'
-wwLib.wwPopups.addPopup('wwButtonPopupStyle', wwButtonPopupStyle);
-wwLib.wwPopups.addStory('WWBUTTON_LINKS', {
-    title: {
-        en: 'Link',
-        fr: 'Lien'
-    },
-    type: 'wwPopupLinks',
-    storyData: {
-        links: [
-            'EXTERNAL',
-            'INTERNAL',
-            'SECTION',
-            'POPUP',
-            'DOWNLOAD',
-            'CLOSE_POPUP',
-            'NO_LINK'
-        ]
-    }
-})
-/* wwManager:end */
 
 export default {
     name: "__COMPONENT_NAME__",
@@ -45,7 +27,9 @@ export default {
     },
     data() {
         return {
-            textNotEditable: false
+            textNotEditable: false,
+            focus: false,
+            forceOpen: false
         }
     },
     computed: {
@@ -53,29 +37,6 @@ export default {
             return this.wwObjectCtrl.get();
         },
         style() {
-            let style = {};
-            let wwObjectStyle = this.wwObject.content.data.style || {};
-
-            if (wwObjectStyle.gradient && wwObjectStyle.gradient.value) {
-                style.background = wwObjectStyle.gradient.value;
-                style.backgroundColor = wwObjectStyle.gradient.default;
-            }
-            else {
-                style.background = '';
-                style.backgroundColor = wwObjectStyle.backgroundColor || '#FFFFFF';
-            }
-
-            style.borderRadius = (wwObjectStyle.borderRadius || 0) + 'px';
-            style.borderWidth = (wwObjectStyle.borderWidth || 0) + 'px';
-            style.borderColor = wwObjectStyle.borderColor || '#000000';
-            style.borderStyle = wwObjectStyle.borderStyle || 'solid';
-            style.boxShadow = this.getShadow();
-
-            style.padding = wwObjectStyle.padding ? (wwObjectStyle.padding / 2) + 'px ' + wwObjectStyle.padding + 'px' : 0;
-
-            return style;
-        },
-        wrapperStyle() {
             let style = {};
             let wwObjectStyle = this.wwObject.content.data.style || {};
             style.justifyContent = wwObjectStyle.justify || 'center';
@@ -87,47 +48,34 @@ export default {
     beforeDestroy() { },
     methods: {
         init() {
-            if (!this.wwObject.content.data.text || !this.wwObject.content.data.text.uniqueId) {
+            if (!this.wwObject.content.data.title || !this.wwObject.content.data.title.uniqueId) {
 
                 let text = wwLib.wwObject.getDefault()
                 text.content = wwLib.wwObject.getDefaultContent('ww-text')
-                text.content.data.text = {
-                    fr: 'Nouveau bouton',
-                    en: 'New button',
+                text.content.data.title = {
+                    fr: 'Nouveau texte',
+                    en: 'New text',
                 }
 
-                this.wwObject.content.data.text = text
+                this.wwObject.content.data.title = text
+                this.wwObjectCtrl.update(this.wwObject);
+            }
+
+            if (!this.wwObject.content.data.background || !this.wwObject.content.data.background.uniqueId) {
+
+                let color = wwLib.wwObject.getDefault()
+                color.content = wwLib.wwObject.getDefaultContent('ww-color');
+                color.content.data.backgroundColor = '#FFFFFF';
+
+                this.wwObject.content.data.background = color
                 this.wwObjectCtrl.update(this.wwObject);
             }
         },
-        getShadow() {
-            let wwObjectStyle = this.wwObject.content.data.style || {};
-            const shadow = wwObjectStyle.boxShadow || {};
-            if (shadow.x || shadow.y || shadow.b || shadow.s || shadow.c) {
-                return shadow.x + 'px ' + shadow.y + 'px ' + shadow.b + 'px ' + shadow.s + 'px ' + shadow.c;
-            }
-            return '';
-        },
-
 
         /* wwManager:start */
         /*=============================================m_ÔÔ_m=============================================\
-          CHANGE BUTTON
+          EDIT
         \================================================================================================*/
-        async changeLink() {
-            let options = {
-                firstPage: 'WWBUTTON_LINKS'
-            }
-
-            try {
-                const result = await wwLib.wwPopups.open(options)
-
-                this.wwObjectCtrl.globalEdit(result);
-
-            } catch (error) {
-
-            }
-        },
         async edit() {
 
             wwLib.wwPopups.addStory('WWBUTTON_EDIT', {
@@ -324,29 +272,85 @@ export default {
                 console.log(error);
             }
 
+        },
+        setFocus(focusId) {
+            this.focus = focusId == this.$parent._uid
+        },
+        wwAdd(options) {
+            this.wwObject.content.data.list.splice(options.index, 0, options.wwObject);
+            this.wwObjectCtrl.update(this.wwObject);
+        },
+        wwRemove(options) {
+            this.wwObject.content.data.list.splice(options.index, 1);
+            this.wwObjectCtrl.update(this.wwObject);
+        },
+        toggle() {
+            this.forceOpen = !this.forceOpen;
         }
         /* wwManager:end */
     },
     mounted() {
         this.init();
 
+        /* wwManager:start */
+        wwLib.$on('wwFocus', this.setFocus);
+        /* wwManager:end */
+
         this.$emit('ww-loaded', this);
+    },
+    beforeDestroy() {
+        /* wwManager:start */
+        wwLib.$off('wwFocus', this.setFocus);
+        /* wwManager:end */
     }
 };
 </script>
 
-<style scoped>
-.ww-button-wrapper {
+<style scoped lang='scss'>
+.ww-dropdown {
     width: 100%;
     height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-}
-
-.ww-button {
-    display: inline-block;
     position: relative;
+    cursor: pointer;
+
+    &.open,
+    &:hover {
+        .dropdown {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: all;
+        }
+    }
+
+    .dropdown {
+        z-index: 10;
+        position: relative;
+        min-width: 100px;
+        min-height: 50px;
+        position: absolute;
+        top: calc(100% - 1px);
+        left: 50%;
+        transform: translate(-50%, 0);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        .dropdown-list {
+            z-index: 1;
+        }
+    }
 }
 
 /* wwManager:start */
