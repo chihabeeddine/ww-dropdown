@@ -1,13 +1,20 @@
 <template>
     <div class="ww-dropdown" :class="{'open': forceOpen || focus}" :style="style">
         <!-- wwManager:start -->
-        <wwOrangeButton class="ww-orange-button" v-if="wwObjectCtrl.getSectionCtrl().getEditMode() == 'CONTENT'"></wwOrangeButton>
+        <wwOrangeButton class="ww-orange-button" v-if="editMode"></wwOrangeButton>
         <!-- wwManager:end -->
-        <wwObject :ww-object="wwObject.content.data.title" ww-inside-ww-object="ww-dropdown" :ww-not-editable="textNotEditable" ww-default-object-type="ww-text" ww-object-types-allowed="['ww-text']" :ww-no-section="wwAttrs.wwNoSection" :ww-no-link="wwAttrs.wwNoLink" ww-force-edit-mode="CONTENT"></wwObject>
+        <div class="dropdown-button-wrapper">
+            <wwObject class="dropdown-button" :ww-object="wwObject.content.data.dropDownButton"></wwObject>
+            <div class="dropdown-icon">
+                <i class="dropdown-button-icon fas fa-chevron-down"></i>
+            </div>
+        </div>
+
         <div class="dropdown">
-            <wwObject class="background" ww-category="background" :ww-object="wwObject.content.data.background" ww-inside-ww-object="ww-dropdown"></wwObject>
-            <wwLayoutColumn tag="div" ww-default="ww-image" :ww-list="wwObject.content.data.list" class="dropdown-list" @ww-add="wwAdd($event)" @ww-remove="wwRemove($event)">
-                <wwObject v-for="wwObj in wwObject.content.data.list" :key="wwObj.uniqueId" :ww-object="wwObj" ww-inside-ww-object="ww-dropdown"></wwObject>
+            <div class="triangle"></div>
+            <wwObject class="background" ww-category="background" :ww-object="wwObject.content.data.background"></wwObject>
+            <wwLayoutColumn tag="div" ww-default="ww-text" :ww-list="wwObject.content.data.list" class="dropdown-list" @ww-add="wwAdd($event)" @ww-remove="wwRemove($event)">
+                <wwObject class="dropdown-element" v-for="wwObj in wwObject.content.data.list" :key="wwObj.uniqueId" :ww-object="wwObj"></wwObject>
             </wwLayoutColumn>
         </div>
     </div>
@@ -41,13 +48,18 @@ export default {
             let wwObjectStyle = this.wwObject.content.data.style || {};
             style.justifyContent = wwObjectStyle.justify || 'center';
             return style;
-        }
+        },
+        editMode() {
+            return this.wwObjectCtrl.getSectionCtrl().getEditMode() == 'CONTENT'
+        },
     },
     watch: {
     },
     beforeDestroy() { },
     methods: {
         init() {
+            this.wwObject.content.data = this.wwObject.content.data || {}
+
             if (!this.wwObject.content.data.title || !this.wwObject.content.data.title.uniqueId) {
 
                 let text = wwLib.wwObject.getDefault()
@@ -70,6 +82,22 @@ export default {
                 this.wwObject.content.data.background = color
                 this.wwObjectCtrl.update(this.wwObject);
             }
+
+            if (!this.wwObject.content.data.dropDownButton) {
+                this.wwObject.content.data.dropDownButton = wwLib.wwObject.getDefault({
+                    type: "ww-button",
+                    data: {
+                        text: {
+                            fr_FR: "Voir la mission",
+                            en_GB: "See the mission"
+                        },
+
+                    }
+                });
+                this.wwObjectCtrl.update(this.wwObject);
+
+            }
+
         },
 
         /* wwManager:start */
@@ -315,7 +343,6 @@ export default {
     align-items: center;
     position: relative;
     cursor: pointer;
-
     &.open,
     &:hover {
         .dropdown {
@@ -324,12 +351,53 @@ export default {
             pointer-events: all;
         }
     }
+    .triangle {
+        width: 20px;
+        height: 20px;
+        position: relative;
+        overflow: hidden;
+        float: right;
+        right: 50%;
+        top: 0;
+        transform: translate(50%, -140%);
+        box-shadow: 0 16px 10px -17px rgba(0, 0, 0, 0.5);
+    }
+    .triangle:after {
+        content: "";
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        background: #ffffff;
+        transform: rotate(45deg);
+        top: 11px;
+        left: 2px;
+        box-shadow: 0px 0px 6px -2px rgba(0, 0, 0, 0.5);
+    }
 
+    .dropdown-button-wrapper {
+        width: 100%;
+        height: 100%;
+        padding: 15px;
+        display: flex;
+        border-radius: 15px;
+        &.open,
+        &:hover {
+            background-color: #fafafa;
+            //background-color: #fafafa;
+        }
+        .dropdown-button {
+            width: 100%;
+            height: 100%;
+            min-width: 150px;
+        }
+        .dropdown-button-icon {
+            margin-left: 5px;
+        }
+    }
     .dropdown {
         z-index: 10;
-        position: relative;
-        min-width: 100px;
-        min-height: 50px;
+        min-width: 200px;
+        min-height: 10px;
         position: absolute;
         top: calc(100% - 1px);
         left: 50%;
@@ -338,6 +406,8 @@ export default {
         visibility: hidden;
         pointer-events: none;
         transition: opacity 0.3s ease;
+        padding: 10px;
+        border-radius: 15px;
 
         .background {
             position: absolute;
@@ -349,6 +419,16 @@ export default {
 
         .dropdown-list {
             z-index: 1;
+            box-shadow: 0px 0px 10px 10px #bfbfbf;
+            .dropdown-element {
+                width: 100%;
+                margin-bottom: 5px;
+                &.open,
+                &:hover {
+                    background-color: #fafafa;
+                    border-radius: 10px;
+                }
+            }
         }
     }
 }
@@ -363,3 +443,22 @@ export default {
 }
 /* wwManager:end */
 </style>
+
+<style lang="scss">
+.ww-dropdown {
+    .dropdown {
+        .dropdown-list {
+            .dropdown-element {
+                &.open,
+                &:hover {
+                    * {
+                        color: #8f1afe !important;
+                        border-color: #8f1afe !important;
+                    }
+                }
+            }
+        }
+    }
+}
+</style>
+
