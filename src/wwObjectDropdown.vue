@@ -1,28 +1,37 @@
 <template>
-    <div class="ww-dropdown" :class="{'open': forceOpen || focus}" :style="style">
+    <div class="ww-dropdown" @mouseover="enabledMenu = true" @mouseleave="enabledMenu = false" :class="{'open': editMode || forceOpen || focus }" :style="style">
         <!-- wwManager:start -->
         <wwOrangeButton class="ww-orange-button" v-if="editMode"></wwOrangeButton>
         <!-- wwManager:end -->
-        <div class="dropdown-button-wrapper">
-            <wwObject class="dropdown-button" :ww-object="wwObject.content.data.dropDownButton"></wwObject>
+        <div class="dropdown-button-wrapper" :style="{'background-color': (enabledMenu ? activeColor:'')}">
+            <wwObject tag="div" class="dropdown-button" :ww-object="wwObject.content.data.dropDownButton"></wwObject>
             <div class="dropdown-icon">
                 <i class="dropdown-button-icon fas fa-chevron-down"></i>
             </div>
         </div>
 
         <div class="dropdown">
-            <div class="triangle"></div>
-            <wwObject class="background" ww-category="background" :ww-object="wwObject.content.data.background"></wwObject>
-            <wwLayoutColumn tag="div" ww-default="ww-text" :ww-list="wwObject.content.data.list" class="dropdown-list" @ww-add="wwAdd($event)" @ww-remove="wwRemove($event)">
-                <wwObject class="dropdown-element" v-for="wwObj in wwObject.content.data.list" :key="wwObj.uniqueId" :ww-object="wwObj"></wwObject>
-            </wwLayoutColumn>
+            <div class="triangle">
+                <div class="triangle-after" :style="{'background-color': backgroundColor}"></div>
+            </div>
+            <div class="dropdown-list-wrapper" :style="{'background-color': backgroundColor}">
+                <!-- add default background color with the possibility to change through popup  -->
+                <!-- fix popup : remove extra options that are the button related -->
+                <wwLayoutColumn tag="div" ww-default="ww-text" :ww-list="wwObject.content.data.list" class="dropdown-list" @ww-add="wwAdd($event)" @ww-remove="wwRemove($event)">
+                    <wwObject class="dropdown-element" v-for="element in wwObject.content.data.list" :key="element" :ww-object="element"></wwObject>
+                </wwLayoutColumn>
+            </div>
         </div>
     </div>
 </template>
  
 
 <script>
+/* 
+triangle after change with a div 
 
+
+*/
 export default {
     name: "__COMPONENT_NAME__",
     props: {
@@ -36,7 +45,11 @@ export default {
         return {
             textNotEditable: false,
             focus: false,
-            forceOpen: false
+            forceOpen: false,
+            enabledMenu: false,
+            elementHover: false,
+            activeColor: "#fafafa",
+            elementColor: "#8f1afe"
         }
     },
     computed: {
@@ -52,6 +65,11 @@ export default {
         editMode() {
             return this.wwObjectCtrl.getSectionCtrl().getEditMode() == 'CONTENT'
         },
+        backgroundColor() {
+            if (!this.wwObject || !this.wwObject.content)
+                return "#ffffff"
+            return (this.wwObject.content.data.background && this.wwObject.content.data.background.content) ? this.wwObject.content.data.background.content.data.backgroundColor : '#ffffff'
+        }
     },
     watch: {
     },
@@ -60,41 +78,38 @@ export default {
         init() {
             this.wwObject.content.data = this.wwObject.content.data || {}
 
-            if (!this.wwObject.content.data.title || !this.wwObject.content.data.title.uniqueId) {
 
-                let text = wwLib.wwObject.getDefault()
-                text.content = wwLib.wwObject.getDefaultContent('ww-text')
-                text.content.data.title = {
-                    fr: 'Nouveau texte',
-                    en: 'New text',
-                }
-
-                this.wwObject.content.data.title = text
-                this.wwObjectCtrl.update(this.wwObject);
-            }
-
-            if (!this.wwObject.content.data.background || !this.wwObject.content.data.background.uniqueId) {
-
-                let color = wwLib.wwObject.getDefault()
-                color.content = wwLib.wwObject.getDefaultContent('ww-color');
-                color.content.data.backgroundColor = '#FFFFFF';
-
-                this.wwObject.content.data.background = color
-                this.wwObjectCtrl.update(this.wwObject);
-            }
-
-            if (!this.wwObject.content.data.dropDownButton) {
-                this.wwObject.content.data.dropDownButton = wwLib.wwObject.getDefault({
-                    type: "ww-button",
+            if (!this.wwObject.content.data.background) {
+                this.wwObject.content.data.background = wwLib.wwObject.getDefault({
+                    type: 'ww-color',
                     data: {
-                        text: {
-                            fr_FR: "Voir la mission",
-                            en_GB: "See the mission"
-                        },
-
+                        backgroundColor: '#FFFFFF'
                     }
                 });
                 this.wwObjectCtrl.update(this.wwObject);
+
+            }
+            if (!this.wwObject.content.data.dropDownButton) {
+                this.wwObject.content.data.dropDownButton = wwLib.wwObject.getDefault({
+                    type: "ww-button",
+
+                });
+                this.wwObjectCtrl.update(this.wwObject);
+
+            }
+
+            if (_.isEmpty(this.wwObject.content.data.list)) {
+                this.wwObject.content.data.list.push(
+                    wwLib.wwObject.getDefault({
+                        type: "ww-text",
+                        data: {
+                            text: {
+                                fr: "place holder",
+                                en: "place holder"
+                            }
+                        }
+                    })
+                )
 
             }
 
@@ -314,6 +329,14 @@ export default {
         },
         toggle() {
             this.forceOpen = !this.forceOpen;
+            this.enabledMenu = !this.enabledMenu;
+        },
+        toggleColor() {
+            this.enabledMenu = !this.enabledMenu;
+        },
+        setHoverColor(value) {
+            this.elementHover = value
+
         }
         /* wwManager:end */
     },
@@ -359,17 +382,18 @@ export default {
         float: right;
         right: 50%;
         top: 0;
-        transform: translate(50%, -140%);
+        z-index: 10;
+        transform: translate(50%, 0%);
         box-shadow: 0 16px 10px -17px rgba(0, 0, 0, 0.5);
     }
-    .triangle:after {
+    .triangle-after {
         content: "";
         position: absolute;
         width: 15px;
         height: 15px;
-        background: #ffffff;
+        //background: #ffffff;
         transform: rotate(45deg);
-        top: 11px;
+        top: 13px;
         left: 2px;
         box-shadow: 0px 0px 6px -2px rgba(0, 0, 0, 0.5);
     }
@@ -379,54 +403,61 @@ export default {
         height: 100%;
         padding: 15px;
         display: flex;
+        align-items: center;
         border-radius: 15px;
         &.open,
         &:hover {
             background-color: #fafafa;
-            //background-color: #fafafa;
         }
         .dropdown-button {
-            width: 100%;
-            height: 100%;
-            min-width: 150px;
+            display: flex;
         }
-        .dropdown-button-icon {
-            margin-left: 5px;
+        .dropdown-icon {
+            display: flex;
+            .dropdown-button-icon {
+                margin-left: 5px;
+                margin-right: 5px;
+            }
+            .rotate-icon {
+                transform: rotate(180deg);
+            }
         }
     }
     .dropdown {
         z-index: 10;
         min-width: 200px;
-        min-height: 10px;
         position: absolute;
         top: calc(100% - 1px);
-        left: 50%;
-        transform: translate(-50%, 0);
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
         transition: opacity 0.3s ease;
-        padding: 10px;
-        border-radius: 15px;
-
-        .background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-        }
-
-        .dropdown-list {
-            z-index: 1;
-            box-shadow: 0px 0px 10px 10px #bfbfbf;
-            .dropdown-element {
-                width: 100%;
-                margin-bottom: 5px;
-                &.open,
-                &:hover {
-                    background-color: #fafafa;
-                    border-radius: 10px;
+        .dropdown-list-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            .background {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+            }
+            .dropdown-list {
+                z-index: 1;
+                box-shadow: 0px 0px 3px 0px #bfbfbf;
+                border-radius: 10px;
+                padding: 10px;
+                .dropdown-element {
+                    width: 100%;
+                    margin-bottom: 5px;
+                    &.open,
+                    &:hover {
+                        background-color: #fafafa;
+                        border-radius: 10px;
+                    }
                 }
             }
         }

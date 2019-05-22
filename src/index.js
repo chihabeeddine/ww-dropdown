@@ -13,8 +13,8 @@ const addComponent = function () {
                     style: {
                         justify: null
                     },
-                    title: {},
-                    background: {},
+                    title: null,
+                    background: null,
                     list: []
                 }
             },
