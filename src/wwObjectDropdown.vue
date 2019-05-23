@@ -137,7 +137,7 @@ export default {
         \================================================================================================*/
         async edit() {
 
-            wwLib.wwPopups.addStory('WWTIP_CUSTOM', {
+            wwLib.wwPopups.addStory('WWDROP_CUSTOM', {
                 title: {
                     en: 'Color picker',
                     fr: 'Choisir une couleur'
@@ -188,7 +188,7 @@ export default {
             })
 
             let options = {
-                firstPage: 'WWTIP_CUSTOM',
+                firstPage: 'WWDROP_CUSTOM',
                 data: {
                     wwObject: this.wwObject,
                 }
