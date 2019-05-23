@@ -1,5 +1,4 @@
 <template>
-    <!-- <div class="ww-dropdown" @mouseover="enabledMenu = true" @mouseleave="enabledMenu = false" :class="{'open': editMode || forceOpen || focus }" :style="style"> -->
     <div class="ww-dropdown" @mouseover="setHoverMenu(true)" @mouseleave="setHoverMenu(false)" :class="{'open': editMode || forceOpen || focus }" :style="style">
         <!-- wwManager:start -->
         <wwOrangeButton class="ww-orange-button-top" v-if="editMode"></wwOrangeButton>
@@ -7,7 +6,7 @@
         <div class="dropdown-button-wrapper" :style="{'background-color': (enabledMenu ? hoverColor : backgroundColor)}">
             <wwObject tag="div" class="dropdown-button" :ww-object="wwObject.content.data.dropDownButton"></wwObject>
             <div class="dropdown-icon">
-                <i class="dropdown-button-icon fas fa-chevron-down" :class="{'rotate-icon':enabledMenu}"></i>
+                <wwObject tag="div" class="dropdown-button-icon" :ww-object="wwObject.content.data.dropDownIcon" :class="{'rotate-icon':enabledMenu}"></wwObject>
             </div>
         </div>
 
@@ -16,8 +15,6 @@
                 <div class="triangle-after" :style="{'background-color': backgroundColor}"></div>
             </div>
             <div class="dropdown-list-wrapper">
-                <!-- add default background color with the possibility to change through popup  -->
-                <!-- fix popup : remove extra options that are the button related -->
                 <wwLayoutColumn
                     tag="div"
                     :style="{'background-color': backgroundColor}"
@@ -33,8 +30,8 @@
                         v-for="(element, index) in wwObject.content.data.list"
                         :key="element.uniqueId"
                         :ww-object="element"
-                        @mouseover.native="setHoverColor(true, $event, index)"
-                        @mouseleave.native="setHoverColor(false, $event, index)"
+                        @mouseover.native="setHoverColor(true, index)"
+                        @mouseleave.native="setHoverColor(false, index)"
                         :style="{'background-color': ((elementHover && (activeElementIndex == index)) ? hoverColor: '')}"
                     ></wwObject>
                 </wwLayoutColumn>
@@ -45,8 +42,6 @@
  
 
 <script>
-/* @mouseover="setHoverColor(true)"
-                    @mouseleave="setHoverColor(false)" */
 
 export default {
     name: "__COMPONENT_NAME__",
@@ -59,13 +54,10 @@ export default {
     },
     data() {
         return {
-            textNotEditable: false,
             focus: false,
             forceOpen: false,
             enabledMenu: false,
             elementHover: false,
-            activeColor: "#fafafa",
-            elementColor: "#8f1afe",
             activeElement: 0
 
         }
@@ -135,7 +127,6 @@ export default {
                         }
                     })
                 )
-
             }
 
         },
@@ -240,17 +231,12 @@ export default {
             this.wwObjectCtrl.update(this.wwObject);
         },
         /* wwManager:end */
-        toggle() {
-            this.forceOpen = !this.forceOpen;
-            this.enabledMenu = !this.enabledMenu;
-        },
-        toggleColor() {
-            this.enabledMenu = !this.enabledMenu;
-        },
+
+
         setHoverMenu(value) {
             this.enabledMenu = value
         },
-        setHoverColor(value, event, index) {
+        setHoverColor(value, index) {
             this.activeElement = index
             this.elementHover = value
         },
@@ -259,7 +245,6 @@ export default {
     },
     mounted() {
         this.init();
-
         /* wwManager:start */
         wwLib.$on('wwFocus', this.setFocus);
         /* wwManager:end */
