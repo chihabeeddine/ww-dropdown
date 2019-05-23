@@ -1,12 +1,13 @@
 <template>
-    <div class="ww-dropdown" @mouseover="enabledMenu = true" @mouseleave="enabledMenu = false" :class="{'open': editMode || forceOpen || focus }" :style="style">
+    <!-- <div class="ww-dropdown" @mouseover="enabledMenu = true" @mouseleave="enabledMenu = false" :class="{'open': editMode || forceOpen || focus }" :style="style"> -->
+    <div class="ww-dropdown" @mouseover="setHoverMenu(true)" @mouseleave="setHoverMenu(false)" :class="{'open': editMode || forceOpen || focus }" :style="style">
         <!-- wwManager:start -->
-        <wwOrangeButton class="ww-orange-button" v-if="editMode"></wwOrangeButton>
+        <wwOrangeButton class="ww-orange-button-top" v-if="editMode"></wwOrangeButton>
         <!-- wwManager:end -->
-        <div class="dropdown-button-wrapper" :style="{'background-color': (enabledMenu ? activeColor:'')}">
+        <div class="dropdown-button-wrapper" :style="{'background-color': (enabledMenu ? hoverColor : backgroundColor)}">
             <wwObject tag="div" class="dropdown-button" :ww-object="wwObject.content.data.dropDownButton"></wwObject>
             <div class="dropdown-icon">
-                <i class="dropdown-button-icon fas fa-chevron-down"></i>
+                <i class="dropdown-button-icon fas fa-chevron-down" :class="{'rotate-icon':enabledMenu}"></i>
             </div>
         </div>
 
@@ -14,11 +15,28 @@
             <div class="triangle">
                 <div class="triangle-after" :style="{'background-color': backgroundColor}"></div>
             </div>
-            <div class="dropdown-list-wrapper" :style="{'background-color': backgroundColor}">
+            <div class="dropdown-list-wrapper">
                 <!-- add default background color with the possibility to change through popup  -->
                 <!-- fix popup : remove extra options that are the button related -->
-                <wwLayoutColumn tag="div" ww-default="ww-text" :ww-list="wwObject.content.data.list" class="dropdown-list" @ww-add="wwAdd($event)" @ww-remove="wwRemove($event)">
-                    <wwObject class="dropdown-element" v-for="element in wwObject.content.data.list" :key="element" :ww-object="element"></wwObject>
+                <wwLayoutColumn
+                    tag="div"
+                    :style="{'background-color': backgroundColor}"
+                    ww-default="ww-text"
+                    :ww-list="wwObject.content.data.list"
+                    class="dropdown-list"
+                    @ww-add="wwAdd($event)"
+                    @ww-remove="wwRemove($event)"
+                >
+                    <wwObject
+                        tag="div"
+                        class="dropdown-element"
+                        v-for="(element, index) in wwObject.content.data.list"
+                        :key="element.uniqueId"
+                        :ww-object="element"
+                        @mouseover.native="setHoverColor(true, $event, index)"
+                        @mouseleave.native="setHoverColor(false, $event, index)"
+                        :style="{'background-color': ((elementHover && (activeElementIndex == index)) ? hoverColor: '')}"
+                    ></wwObject>
                 </wwLayoutColumn>
             </div>
         </div>
@@ -27,11 +45,9 @@
  
 
 <script>
-/* 
-triangle after change with a div 
+/* @mouseover="setHoverColor(true)"
+                    @mouseleave="setHoverColor(false)" */
 
-
-*/
 export default {
     name: "__COMPONENT_NAME__",
     props: {
@@ -49,7 +65,9 @@ export default {
             enabledMenu: false,
             elementHover: false,
             activeColor: "#fafafa",
-            elementColor: "#8f1afe"
+            elementColor: "#8f1afe",
+            activeElement: 0
+
         }
     },
     computed: {
@@ -65,11 +83,18 @@ export default {
         editMode() {
             return this.wwObjectCtrl.getSectionCtrl().getEditMode() == 'CONTENT'
         },
+
         backgroundColor() {
-            if (!this.wwObject || !this.wwObject.content)
-                return "#ffffff"
-            return (this.wwObject.content.data.background && this.wwObject.content.data.background.content) ? this.wwObject.content.data.background.content.data.backgroundColor : '#ffffff'
+            return this.wwObject.content.data.dropDownStyle.backgroundColor
+        },
+        hoverColor() {
+            return this.wwObject.content.data.dropDownStyle.hoverColor
+        },
+        activeElementIndex() {
+            return this.activeElement
         }
+
+
     },
     watch: {
     },
@@ -78,20 +103,20 @@ export default {
         init() {
             this.wwObject.content.data = this.wwObject.content.data || {}
 
+            this.wwObject.content.data.dropDownStyle = this.wwObject.content.data.dropDownStyle || {};
+            this.wwObject.content.data.dropDownStyle.backgroundColor = '#ffffff'
+            this.wwObject.content.data.dropDownStyle.hoverColor = '#fafafa'
+            if (!this.wwObject.content.data.dropDownButton) {
+                this.wwObject.content.data.dropDownButton = wwLib.wwObject.getDefault({
+                    type: "ww-button",
 
-            if (!this.wwObject.content.data.background) {
-                this.wwObject.content.data.background = wwLib.wwObject.getDefault({
-                    type: 'ww-color',
-                    data: {
-                        backgroundColor: '#FFFFFF'
-                    }
                 });
                 this.wwObjectCtrl.update(this.wwObject);
 
             }
-            if (!this.wwObject.content.data.dropDownButton) {
-                this.wwObject.content.data.dropDownButton = wwLib.wwObject.getDefault({
-                    type: "ww-button",
+            if (!this.wwObject.content.data.dropDownIcon) {
+                this.wwObject.content.data.dropDownIcon = wwLib.wwObject.getDefault({
+                    type: "ww-icon",
 
                 });
                 this.wwObjectCtrl.update(this.wwObject);
@@ -121,132 +146,46 @@ export default {
         \================================================================================================*/
         async edit() {
 
-            wwLib.wwPopups.addStory('WWBUTTON_EDIT', {
+            wwLib.wwPopups.addStory('WWTIP_CUSTOM', {
                 title: {
-                    en: 'Edit button',
-                    fr: 'Editer le bouton'
-                },
-                type: 'wwPopupEditWwObject',
-                buttons: null,
-                storyData: {
-                    list: {
-                        EDIT_LINK: {
-                            separator: {
-                                en: 'Link',
-                                fr: 'Lien'
-                            },
-                            title: {
-                                en: 'Change link',
-                                fr: 'Changer le lien'
-                            },
-                            desc: {
-                                en: 'External link, page link, ...',
-                                fr: 'Lien externe, lien vers une page, ...'
-                            },
-                            icon: 'wwi wwi-link-external',
-                            shortcut: 'l',
-                            next: 'WWBUTTON_LINKS'
-                        },
-                        EDIT_STYLE: {
-                            separator: {
-                                en: 'Style',
-                                fr: 'Style'
-                            },
-                            title: {
-                                en: 'Change button style',
-                                fr: 'Changer l\'apparence du bouton'
-                            },
-                            desc: {
-                                en: 'Borders, colors, shadow, ...',
-                                fr: 'Bordures, couleurs, ombres, ...'
-                            },
-                            icon: 'wwi wwi-edit-style',
-                            shortcut: 's',
-                            next: 'WWBUTTON_STYLE'
-                        },
-                        EDIT_JUSTIFY: {
-                            title: {
-                                en: 'Align',
-                                fr: 'Alignement'
-                            },
-                            desc: {
-                                en: 'Align left / right / center',
-                                fr: 'Aligner à gauche / droite / centrer'
-                            },
-                            icon: 'wwi wwi-center',
-                            shortcut: 'a',
-                            next: 'WWBUTTON_ALIGN'
-                        }
-                    }
-                }
-            })
-
-
-            wwLib.wwPopups.addStory('WWBUTTON_STYLE', {
-                title: {
-                    en: 'Button style',
-                    fr: 'Style du bouton'
-                },
-                type: 'wwButtonPopupStyle',
-                buttons: {
-                    OK: {
-                        text: {
-                            en: 'Ok',
-                            fr: 'Valider'
-                        },
-                        next: false
-                    }
-                }
-            })
-
-            wwLib.wwPopups.addStory('WWBUTTON_ALIGN', {
-                title: {
-                    en: 'Align',
-                    fr: 'Alignement'
+                    en: 'Color picker',
+                    fr: 'Choisir une couleur'
                 },
                 type: 'wwPopupForm',
                 storyData: {
                     fields: [
                         {
                             label: {
-                                en: 'Align :',
-                                fr: 'Alignement :'
+                                en: 'Background Color:',
+                                fr: 'Couleur du fond :'
                             },
-                            type: 'select',
-                            key: 'justify',
-                            valueData: 'wwObject.content.data.style.justify',
-                            options: {
-                                type: 'text',
-                                values: [
-                                    {
-                                        value: 'center',
-                                        default: true,
-                                        text: {
-                                            en: 'Center',
-                                            fr: 'Centrer'
-                                        }
-                                    },
-                                    {
-                                        value: 'flex-start',
-                                        text: {
-                                            en: 'Left',
-                                            fr: 'Gauche'
-                                        }
-                                    },
-                                    {
-                                        value: 'flex-end',
-                                        text: {
-                                            en: 'Right',
-                                            fr: 'Droite'
-                                        }
-                                    }
-
-                                ]
+                            type: 'color',
+                            key: 'backgroundColor',
+                            value: "#ffffff",
+                            valueData: 'backgroundColor',
+                            desc: {
+                                en: 'Choose a Background color',
+                                fr: 'Changer la couleur du fond '
                             }
-                        }
+                        },
+                        {
+                            label: {
+                                en: 'Hover Color:',
+                                fr: 'Couleur du Hover :'
+                            },
+                            type: 'color',
+                            key: 'hoverColor',
+                            value: "#fafafa",
+                            valueData: 'hoverColor',
+                            desc: {
+                                en: 'Choose the Hover color',
+                                fr: 'Changer la couleur du Hover '
+                            }
+                        },
                     ]
                 },
                 buttons: {
+
                     NEXT: {
                         text: {
                             en: 'Ok',
@@ -255,17 +194,14 @@ export default {
                         next: false
                     }
                 }
-            });
+            })
 
             let options = {
-                firstPage: 'WWBUTTON_EDIT',
+                firstPage: 'WWTIP_CUSTOM',
                 data: {
-                    wwObject: this.wwObject
+                    wwObject: this.wwObject,
                 }
             }
-
-            this.wwObjectCtrl.update(this.wwObject);
-            console.log(this.wwObject)
 
             try {
                 const result = await wwLib.wwPopups.open(options);
@@ -273,38 +209,14 @@ export default {
                 /*=============================================m_ÔÔ_m=============================================\
                   STYLE
                 \================================================================================================*/
-                this.wwObject.content.data.style = this.wwObject.content.data.style || {};
-                if (typeof (result.borderColor) != 'undefined') {
-                    this.wwObject.content.data.style.borderColor = result.borderColor;
-                }
-                if (typeof (result.borderRadius) != 'undefined') {
-                    this.wwObject.content.data.style.borderRadius = result.borderRadius;
-                }
-                if (typeof (result.borderStyle) != 'undefined') {
-                    this.wwObject.content.data.style.borderStyle = result.borderStyle;
-                }
-                if (typeof (result.borderWidth) != 'undefined') {
-                    this.wwObject.content.data.style.borderWidth = result.borderWidth;
-                }
-                if (typeof (result.boxShadow) != 'undefined') {
-                    this.wwObject.content.data.style.boxShadow = result.boxShadow;
-                }
-                if (typeof (result.backgroundColor) != 'undefined') {
-                    this.wwObject.content.data.style.backgroundColor = result.backgroundColor;
-                }
-                if (typeof (result.gradient) != 'undefined') {
-                    this.wwObject.content.data.style.gradient = result.gradient;
-                }
-                if (typeof (result.gradientColor) != 'undefined') {
-                    this.wwObject.content.data.style.backgroundColor = result.gradientColor;
-                }
-                if (typeof (result.padding) != 'undefined') {
-                    this.wwObject.content.data.style.padding = result.padding;
-                }
-                if (typeof (result.justify) != 'undefined') {
-                    this.wwObject.content.data.style.justify = result.justify;
-                }
 
+
+                if (typeof (result.backgroundColor) != 'undefined') {
+                    this.wwObject.content.data.dropDownStyle.backgroundColor = result.backgroundColor;
+                }
+                if (typeof (result.hoverColor) != 'undefined') {
+                    this.wwObject.content.data.dropDownStyle.hoverColor = result.hoverColor;
+                }
 
                 this.wwObjectCtrl.update(this.wwObject);
 
@@ -327,6 +239,7 @@ export default {
             this.wwObject.content.data.list.splice(options.index, 1);
             this.wwObjectCtrl.update(this.wwObject);
         },
+        /* wwManager:end */
         toggle() {
             this.forceOpen = !this.forceOpen;
             this.enabledMenu = !this.enabledMenu;
@@ -334,11 +247,15 @@ export default {
         toggleColor() {
             this.enabledMenu = !this.enabledMenu;
         },
-        setHoverColor(value) {
+        setHoverMenu(value) {
+            this.enabledMenu = value
+        },
+        setHoverColor(value, event, index) {
+            this.activeElement = index
             this.elementHover = value
+        },
 
-        }
-        /* wwManager:end */
+
     },
     mounted() {
         this.init();
@@ -374,6 +291,15 @@ export default {
             pointer-events: all;
         }
     }
+    /* wwManager:start */
+    .ww-orange-button-top {
+        position: absolute;
+        top: 0;
+        left: 0;
+        transform: translate(-100%, -50%);
+        z-index: 1;
+    }
+    /* wwManager:end */
     .triangle {
         width: 20px;
         height: 20px;
@@ -381,17 +307,15 @@ export default {
         overflow: hidden;
         float: right;
         right: 50%;
-        top: 0;
+        top: 1px;
         z-index: 10;
         transform: translate(50%, 0%);
         box-shadow: 0 16px 10px -17px rgba(0, 0, 0, 0.5);
     }
     .triangle-after {
-        content: "";
         position: absolute;
         width: 15px;
         height: 15px;
-        //background: #ffffff;
         transform: rotate(45deg);
         top: 13px;
         left: 2px;
@@ -401,14 +325,10 @@ export default {
     .dropdown-button-wrapper {
         width: 100%;
         height: 100%;
-        padding: 15px;
+        padding: 10px;
         display: flex;
         align-items: center;
-        border-radius: 15px;
-        &.open,
-        &:hover {
-            background-color: #fafafa;
-        }
+        border-radius: 10px;
         .dropdown-button {
             display: flex;
         }
@@ -455,7 +375,6 @@ export default {
                     margin-bottom: 5px;
                     &.open,
                     &:hover {
-                        background-color: #fafafa;
                         border-radius: 10px;
                     }
                 }
